@@ -1,0 +1,314 @@
+
+#################################################################
+
+AZ-103 / AZ-104 - Lab - Setting up PowerShell - Practice commands
+// Allow remote signed scripts to run
+
+Set-ExecutionPolicy RemoteSigned
+
+//Installing the Azure PowerShell modules
+
+Install-Module -Name Az -AllowClobber -Scope CurrentUser
+
+// Import all the Azure modules
+
+Import-Module Az -Verbose
+
+// Connect to your Azure account
+
+Connect-AzAccount
+
+// Get all resource groups running in a particular region
+
+Get-AzResourceGroup -Location centralus
+
+#create Resource Group
+	az group create --name myResourceGroupVM --location eastus2
+
+###Azure CLI for quickly creating a virtual machine
+	az vm create --resource-group myResourceGroupVM --name microdc16vm --location eastus2 --image win2016datacenter --admin-username sr1890 --admin-password Papa@kukku1
+
+	az vm list-skus --location eastus2 --output table
+
+#Create virtual machine
+	az vm create --resource-group myResourceGroupVM --name myVM --location eastus2 --image UbuntuLTS --generate-ssh-keys --zone 1
+#PowerShell command for adding a data disk
+
+	$resourcegroup = 'myResourceGroupVM'
+	$machinename = 'microdc16vm'
+	$location = 'eastus2'
+	$storageType = 'Premium_LRS'
+	$dataDiskName = 'newdisk01'
+	$dataDiskSize = 10
+
+
+	$datadiskConfig = New-AzDiskConfig -SkuName $storageType -Location $location -CreateOption Empty -DiskSizeGB $dataDiskSize
+	$dataDisk01 = New-AzDisk -DiskName $dataDiskName -Disk $datadiskConfig -ResourceGroupName $resourcegroup
+	$vm = Get-AzVM -Name $machinename -ResourceGroupName $resourcegroup
+	$vm = Add-AzVMDataDisk -VM $vm -Name $dataDiskName -CreateOption Attach -ManagedDiskId $dataDisk01.Id -Lun 1
+	Update-AzVM -VM $vm -ResourceGroupName $resourcegroup
+
+
+#################################################################
+
+Please create a new file as "InstallIIS.ps1" and place the following commands in the file
+
+	
+
+add-windowsfeature web-server -includeallsubfeature
+
+#######################################################
+
+// Apply custom script extensions for a Linux Virtual Machine
+
+az vm extension set --resource-group azuredemo --vm-name linuxvm --name customScript --publisher Microsoft.Azure.Extensions --settings customscript.json
+
+This chapter has the configuration file attached as a resource. Please ensure you have a GitHub account and attach the URL for your account.
+In the GitHub account , create a repository and add a file named install_web.sh1 that has the following contents
+
+apt-get update -y && apt-get upgrade -y
+apt-get install -y nginx
+
+-------------------------------------
+json file: 
+
+{
+  "fileUris": ["https://raw.githubusercontent.com/alashro/sampleweb/master/install_web.sh"],
+  "commandToExecute": "./install_web.sh"
+}
+
+#################################################################
+
+AZ-103 / AZ-104 - Virtual machine scale sets - Command Line - Practice commands
+// Creating a new virtual machine scale set
+
+az vmss create -n appvmset -g azuredemo --instance-count 1 --image Win2016Datacenter --data-disk-sizes-gb 10 --vnet-name azuredemo-vnet --subnet default --public-ip-per-vm --admin-username demousr
+
+
+// Using custom script extensions for a scale set
+
+--------------------------
+az vmss extension set --publisher "Microsoft.Compute" --version 1.10 --resource-group azuredemo --vmss-name appvmset --settings "appconfig.json" --name CustomScriptExtension
+
+This chapter has the configuration file attached as a resource. Please ensure you have a GitHub account and attach the URL for your account. Ensure to have the config file named as appconfig.json
+--------------------------
+--------------------------
+In the GitHub account , create a repository and add a file named InstallIIS.ps1 that has the following contents
+
+import-module servermanager
+add-windowsfeature web-server -includeallsubfeature
+--------------------------
+
+Resources for this lecture
+--------------------------
+appconfig.json:
+--------------------------
+{
+  "fileUris": ["https://raw.githubusercontent.com/alashro/sampleweb/master/InstallIIS.ps1"],
+  "commandToExecute": "powershell.exe ./InstallIIS.ps1"
+}
+
+#################################################################
+
+
+You can use the following sample PowerShell commands to change the size of a virtual machine
+
+$vm = Get-AzVM -ResourceGroupName azuredemo -VMName newvm
+
+$vm.HardwareProfile.VmSize ="Standard_DS1_v2"
+
+Update-AzVM -VM $vm -ResourceGroupName azuredemo
+
+#################################################################
+
+Kubernetes
+#################################################################
+
+You can use the below commands to work with Azure Kubernetes
+
+// Create a new resource group
+
+az group create --name kubernetes --location eastus
+
+// Create a new Kubernetes cluster
+
+az aks create --resource-group kubernetes --name companycluster --node-count 1 --enable-addons monitoring --generate-ssh-keys
+
+// Install the kubectl tool
+
+az aks install-cli --install-location=./kubectl
+
+// Get the credentials of the cluster
+
+az aks get-credentials --resource-group kubernetes --name companycluster
+
+// Get the nodes running in the cluster
+
+kubectl get nodes
+
+// Apply the application configuration file
+
+kubectl apply -f app.yml
+
+// Apply the sercive configuration file
+
+kubectl apply -f service.yml
+
+// Get the list of services running in Kubernetes
+
+kubectl get services
+
+#################################################################
+
+#################################################################
+ab - Azure Container Registry - Commands
+Use the following commands to practice working with the Azure container registry
+#################################################################
+Install the Azure command line interface
+
+curl -sL https://packages.microsoft.com/keys/microsoft.asc | \
+
+    gpg --dearmor | \
+
+    sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null
+
+// Setup the repository
+
+AZ_REPO=$(lsb_release -cs)
+
+echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | \
+
+    sudo tee /etc/apt/sources.list.d/azure-cli.list
+
+// Update the package index
+
+sudo apt-get update
+
+// Install the Azure command line interface
+
+sudo apt-get install azure-cli
+
+// Login into Azure
+
+sudo az login
+
+// Login in your repository
+
+sudo az acr login --name appregistry9090
+
+// Tag your repository
+
+sudo docker tag nginx:1.17.0 appregistry9090.azurecr.io/nginx
+
+// Push the image to the repository
+
+sudo docker push appregistry9090.azurecr.io/nginx
+
+// Update the Kubernetes cluster to access the repository
+
+az aks update -n companycluster -g kubernetes --attach-acr appregistry9090
+
+// Delete the existing deployments and services
+
+kubectl delete services company-service
+
+kubectl delete deployment nginx
+
+#################################################################
+
+
+Virtual network:
+	Subnet: 
+		Address space 
+		
+	Network security Group
+		Inbound security group
+		outbound security group
+		
+	Application Security Group
+		link web server 
+		
+
+#################################################################
+
+AZ-103 / AZ-104 - Virtual Network and Virtual Machine - PowerShell - commands
+// You can use the below PowerShell commands as a reference for creating virtual networks and virtual machines
+
+1. Create a subnet configuration
+
+$demosubnetConfig = New-AzVirtualNetworkSubnetConfig -Name default -AddressPrefix 10.3.0.0/24
+
+2. Create a new virtual network
+
+$vnet = New-AzVirtualNetwork -ResourceGroupName eastgroup -Location EastUS -Name demonetworknew -AddressPrefix 10.3.0.0/16 -Subnet $demosubnetConfig
+
+3. Create a public IP address
+
+$demoip = New-AzPublicIpAddress -ResourceGroupName eastgroup -Location EastUS -Name "demo-ip" -AllocationMethod Dynamic
+
+4. Create a Network Security Group rule
+
+$RuleConfig = New-AzNetworkSecurityRuleConfig -Name RuleRDP -Protocol Tcp -Direction Inbound -Priority 300 -SourceAddressPrefix "2.49.112.48" -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389 -Access Allow
+
+5. Create a Network Security Group
+
+$securitygroup = New-AzNetworkSecurityGroup -ResourceGroupName eastgroup -Location EastUS -Name demonsg -SecurityRules $RuleConfig
+
+6. Create the network interface
+
+$nic = New-AzNetworkInterface -Name demonetworkcard123 -ResourceGroupName eastgroup -Location EastUS -SubnetId $vnet.Subnets[0].Id -PublicIpAddressId $demoip.Id -NetworkSecurityGroupId $securitygroup.Id
+
+7. Prompt for the Account credentials for the virtual machine
+
+$cred = Get-Credential
+
+8. Create the virtual machine configuration
+
+$vmConfig = New-AzVMConfig -VMName demovm -VMSize Standard_D2s_v3 | Set-AzVMOperatingSystem -Windows -ComputerName demovm -Credential $cred | Set-AzVMSourceImage -PublisherName MicrosoftWindowsServer -Offer WindowsServer -Skus 2016-Datacenter -Version latest | Add-AzVMNetworkInterface -Id $nic.Id
+
+9. Create the virtual machine
+
+New-AzVM -ResourceGroupName eastgroup -Location EastUS -VM $vmConfig	
+
+#################################################################
+
+#################################################################
+
+AZ-103 / AZ-104 - Lab - Custom Roles - Practice commands
+Step 1) First create a file called customrole.json and enter the following contents. Ensure to change the value of the subscription id.
+
+{
+
+  "Name": "stagingrole",
+
+  "Id": null,
+
+  "IsCustom": true,
+
+  "Description": "Allows for read access to Azure Virtual Machines and storage accounts",
+
+  "Actions": [
+
+    "Microsoft.Compute/*/read",
+
+    "Microsoft.Storage/*/read"
+
+  ],
+
+  "NotActions": [],
+
+  "AssignableScopes": [
+
+    "/subscriptions/20c6eec9-2d80-4700-b0f6-4fde579a8783"
+
+  ]
+
+}
+
+Step 2) Next use the following sample commands from Azure cloud shell to register the new role and assign it to a user
+
+New-AzRoleDefinition -InputFile "customrole.json"
+
+New-AzRoleAssignment -ResourceGroupName azuredemo -SignInName demousrA@techsup1000gmail.onmicrosoft.com -RoleDefinitionName "stagingrole"
+#################################################################
+s
